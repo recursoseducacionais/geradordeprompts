@@ -1,0 +1,318 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.w{font-family:var(--font-sans,system-ui,sans-serif);padding:1.25rem 1rem 2rem;max-width:680px;margin:0 auto}
+.step-bar{display:flex;align-items:center;margin-bottom:1.5rem}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;flex-shrink:0;border:0.5px solid var(--border);background:var(--surface-1);color:var(--text-muted)}
+.step-dot.done{background:#7C3AED;border-color:#7C3AED;color:#fff}
+.step-dot.active{background:var(--surface-2);border:2px solid #7C3AED;color:#7C3AED}
+.step-line{flex:1;height:1px;background:var(--border)}
+.step-line.done{background:#7C3AED}
+.panel{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:1.25rem}
+.panel-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:4px}
+.panel-q{font-size:16px;font-weight:500;color:var(--text-primary);margin-bottom:1rem;line-height:1.4}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:.75rem}
+.chip{padding:8px 14px;border-radius:20px;border:0.5px solid var(--border-strong);font-size:13px;font-weight:500;cursor:pointer;background:var(--surface-1);color:var(--text-primary);transition:all .15s;line-height:1.3}
+.chip:hover{border-color:#7C3AED;color:#7C3AED}
+.chip.sel{background:#EDE9FE;border-color:#7C3AED;color:#5B21B6}
+.hint{font-size:12px;color:var(--text-muted);margin-bottom:.75rem}
+.nav{display:flex;gap:8px;margin-top:1rem;align-items:center}
+.btn-p{font-family:inherit;font-size:13px;font-weight:500;padding:8px 18px;border-radius:var(--radius);border:0.5px solid var(--border-strong);cursor:pointer;background:var(--surface-1);color:var(--text-primary)}
+.btn-p:hover{background:var(--surface-0)}
+.btn-next{background:#7C3AED;color:#fff;border-color:#7C3AED}
+.btn-next:hover{background:#6D28D9;border-color:#6D28D9}
+.btn-next:disabled{background:var(--surface-1);border-color:var(--border);color:var(--text-muted);cursor:default}
+.spec-wrap{margin-top:.75rem}
+.spec-label{font-size:12px;color:var(--text-secondary);margin-bottom:4px;font-weight:500}
+.spec-hint{font-size:11px;color:var(--text-muted);margin-bottom:6px;line-height:1.5}
+textarea.spec{width:100%;min-height:60px;font-size:13px;line-height:1.6;border-radius:var(--radius);border:0.5px solid var(--border-strong);padding:8px 10px;resize:vertical;font-family:inherit;background:var(--surface-1);color:var(--text-primary)}
+textarea.spec:focus{outline:none;border-color:#7C3AED}
+textarea.spec::placeholder{color:var(--text-muted)}
+.crumb{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.crumb-tag{font-size:11px;padding:3px 10px;border-radius:10px;background:var(--surface-1);border:0.5px solid var(--border);color:var(--text-secondary)}
+.result-box{border:0.5px solid var(--border);border-radius:12px;overflow:hidden;margin-top:1rem}
+.result-top{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--surface-1);border-bottom:0.5px solid var(--border)}
+.result-top span{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)}
+.result-body{padding:14px;font-size:13px;line-height:1.75;color:var(--text-primary);white-space:pre-wrap;background:var(--surface-2)}
+.btn-copy{font-family:inherit;font-size:12px;font-weight:500;padding:5px 12px;border-radius:var(--radius);border:0.5px solid var(--border-strong);cursor:pointer;background:var(--surface-2);color:var(--text-primary)}
+.btn-copy:hover{background:var(--surface-1)}
+.aviso-fonte{margin-top:.75rem;padding:10px 14px;border-radius:10px;background:var(--bg-warning);border:0.5px solid var(--border-warning);font-size:12px;color:var(--text-warning);line-height:1.6}
+.lente{margin-top:.75rem;padding:10px 14px;border-radius:10px;background:var(--bg-accent);border:0.5px solid var(--border-accent);font-size:12px;color:var(--text-accent);line-height:1.6}
+.restart{font-size:12px;color:var(--text-muted);cursor:pointer;text-decoration:underline;margin-left:auto}
+</style>
+
+<h2 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Gerador de prompts pedagógicos por etapas.</h2>
+<div class="w" id="app"></div>
+
+<script>
+var NIVEIS=[
+  {id:'ei',label:'Educação Infantil'},
+  {id:'ai',label:'Anos iniciais'},
+  {id:'af',label:'Anos finais'},
+  {id:'em',label:'Ensino Médio'}
+];
+var AREAS={
+  ei:['Linguagem oral e escrita','Matemática','Natureza e sociedade','Artes','Movimento e corpo','Música'],
+  ai:['Língua Portuguesa','Matemática','Ciências','História','Geografia','Arte','Educação Física','Língua Inglesa','Ensino Religioso'],
+  af:['Língua Portuguesa','Matemática','Ciências','História','Geografia','Arte','Educação Física','Língua Inglesa','Ensino Religioso'],
+  em:['Linguagens e suas Tecnologias','Matemática e suas Tecnologias','Ciências da Natureza','Ciências Humanas','Itinerário Técnico']
+};
+var OBJETIVOS=[
+  {id:'o1',label:'Criar atividade'},
+  {id:'o2',label:'Elaborar avaliação'},
+  {id:'o3',label:'Diferenciar material'},
+  {id:'o4',label:'Gerar feedback'},
+  {id:'o5',label:'Planejar aula'},
+  {id:'o6',label:'Sequência didática'},
+  {id:'o7',label:'Criar rubrica'},
+  {id:'o8',label:'Desenvolver leitura'}
+];
+var TURMA=[
+  {id:'t1',label:'Turma grande (+35)'},
+  {id:'t2',label:'Turma heterogênea'},
+  {id:'t3',label:'Dificuldade de leitura'},
+  {id:'t4',label:'Baixa motivação'},
+  {id:'t5',label:'Acesso limitado a tecnologia'},
+  {id:'t6',label:'Alunos com NEE'},
+  {id:'t7',label:'Contexto rural'},
+  {id:'t8',label:'Contexto periférico urbano'},
+  {id:'t9',label:'Alta familiaridade digital'},
+  {id:'t10',label:'Defasagem de aprendizagem'}
+];
+var FORMATOS=[
+  {id:'f1',label:'Plano de aula'},
+  {id:'f2',label:'Documento de texto'},
+  {id:'f3',label:'Apresentação de slides'},
+  {id:'f4',label:'Atividade interativa'},
+  {id:'f5',label:'Lista de exercícios'},
+  {id:'f6',label:'Roteiro passo a passo'},
+  {id:'f7',label:'Rubrica de avaliação'},
+  {id:'f8',label:'Questões de múltipla escolha'},
+  {id:'f9',label:'Questões dissertativas'},
+  {id:'f10',label:'Dinâmica colaborativa'},
+  {id:'f11',label:'Infográfico'},
+  {id:'f12',label:'Resumo em tópicos'}
+];
+
+var SUFIXO_REFS='\nConsidere dinâmicas colaborativas quando adequado (ex: 1-2-4-Todos, Aquário, Pensa-Compartilha).';
+
+function getRefBloco(nivel,area){
+  if(nivel==='ei') return 'Todas as atividades devem ser baseadas em livros de literatura infantil publicados, cantigas e brincadeiras do patrimônio cultural brasileiro, imagens de acervos públicos ou situações reais do cotidiano da criança. Nunca crie textos, personagens ou situações fictícias desvinculadas de referências reais. Se o professor não indicar uma referência específica, sugira obras ou fontes reais adequadas à faixa etária, justificando a escolha.'+SUFIXO_REFS;
+  var ling=['Língua Portuguesa','Língua Inglesa','Linguagens e suas Tecnologias','Linguagem oral e escrita'];
+  var mat=['Matemática','Ciências','Matemática e suas Tecnologias','Ciências da Natureza','Natureza e sociedade'];
+  var hum=['História','Geografia','Ciências Humanas'];
+  var art=['Arte','Artes','Educação Física','Movimento e corpo','Música'];
+  if(ling.indexOf(area)>=0) return 'Todas as atividades devem ser baseadas em textos originais — da literatura brasileira ou estrangeira, de sites jornalísticos de referência (veículos com histórico editorial verificável, transparência sobre autoria e data de publicação, e reconhecimento no campo jornalístico) ou de obras do patrimônio público. Nunca crie textos fictícios com pretexto didático. Se o professor não indicar uma obra específica, sugira títulos ou fontes reais adequados ao nível e ao objetivo, justificando a escolha.'+SUFIXO_REFS;
+  if(mat.indexOf(area)>=0) return 'Todas as atividades devem partir de situações reais e dados verificáveis — problemas contextualizados com dados do cotidiano, estatísticas de fontes públicas confiáveis, experimentos documentados ou situações-problema extraídas de publicações de divulgação científica com autoria e fonte identificáveis. Nunca crie dados ou situações fictícias sem base real. Se o professor não indicar uma fonte específica, sugira contextos reais adequados ao nível e ao objetivo, justificando a escolha.'+SUFIXO_REFS;
+  if(hum.indexOf(area)>=0) return 'Todas as atividades devem ser baseadas em fontes primárias ou secundárias verificáveis — documentos históricos, dados de institutos de pesquisa públicos, mapas, censos, legislação ou obras acadêmicas de referência. Nunca crie documentos, dados ou narrativas históricas fictícias. Se o professor não indicar uma fonte específica, sugira fontes reais adequadas ao nível e ao objetivo, justificando a escolha.'+SUFIXO_REFS;
+  if(art.indexOf(area)>=0) return 'Todas as atividades devem ser baseadas em obras artísticas reais, acervos públicos, partituras originais, regras oficiais de modalidades esportivas ou manifestações culturais documentadas. Nunca crie obras, regras ou referências culturais fictícias. Se o professor não indicar uma referência específica, sugira obras ou fontes reais adequadas ao nível e ao objetivo, justificando a escolha.'+SUFIXO_REFS;
+  return 'Todas as atividades devem ser baseadas em textos, documentos ou referências com autoria e origem identificáveis — sejam textos de tradições reconhecidas, obras acadêmicas ou documentos institucionais. Nunca crie textos ou referências fictícias. Se o professor não indicar uma fonte específica, sugira referências reais adequadas ao nível e ao objetivo, justificando a escolha.'+SUFIXO_REFS;
+}
+
+function getResultadoBloco(formatoId,formatoLabel,area){
+  if(formatoId==='f2'){
+    return 'Crie o documento em duas guias separadas no Google Docs:\n\nGUIA 1 — Orientações para o professor\nPlano de aula completo com: objetivos de aprendizagem, tempo estimado, materiais necessários, estratégias de condução e orientações pedagógicas. Inclua obrigatoriamente as habilidades da BNCC trabalhadas, com o código (ex: EF15LP01) e uma descrição resumida de cada uma. Esta guia é de uso exclusivo do professor.\n\nGUIA 2 — Folha de atividades para impressão\nFormatada como folha pronta para o aluno responder, sem orientações pedagógicas e sem referências à BNCC. Estrutura obrigatória:\n\nCabeçalho (alinhado à esquerda):\nEscola: ___________________________\nProfessor(a): ___________________________\nAluno(a): ___________________________\nTurma: _____________ Série: _____________ Data: ___/___/______\n\nTítulo centralizado: '+(area?area.toUpperCase():'[DISCIPLINA]')+'\n\nCorpo: questões numeradas (Questão 1, Questão 2, Questão 3...) com espaço adequado para o aluno responder. Sem gabarito, sem comentários pedagógicos, sem instruções para o professor.';
+  }
+  return 'Formato de entrega: '+formatoLabel+'. Use estrutura clara com títulos, subtítulos e instruções objetivas. Indique ao final as habilidades da BNCC trabalhadas, com o código (ex: EF15LP01) e uma descrição resumida de cada uma.';
+}
+
+var st={nivel:null,area:null,objetivo:[],turma:[],formatoId:null,formatoLabel:null,spec:'',step:0};
+
+function nLabel(id){var f=NIVEIS.find(function(x){return x.id===id;});return f?f.label:'';}
+function oLabel(id){var f=OBJETIVOS.find(function(x){return x.id===id;});return f?f.label:'';}
+function tLabel(id){var f=TURMA.find(function(x){return x.id===id;});return f?f.label:'';}
+function inArr(arr,id){return arr.indexOf(id)>=0;}
+
+function dots(){
+  var h='<div class="step-bar">';
+  for(var i=0;i<5;i++){
+    var c=i<st.step?'done':(i===st.step?'active':'');
+    h+='<div class="step-dot '+c+'">'+(i<st.step?'<i class="ti ti-check" style="font-size:12px" aria-hidden="true"></i>':(i+1))+'</div>';
+    if(i<4)h+='<div class="step-line '+(i<st.step?'done':'')+'"></div>';
+  }
+  return h+'</div>';
+}
+
+function crumbs(){
+  var parts=[];
+  if(st.nivel)parts.push(nLabel(st.nivel));
+  if(st.area)parts.push(st.area);
+  if(st.objetivo.length)parts.push(st.objetivo.map(oLabel).join(', '));
+  if(st.turma.length)parts.push(st.turma.map(tLabel).join(', '));
+  if(st.formatoLabel)parts.push(st.formatoLabel);
+  if(!parts.length)return '';
+  return '<div class="crumb">'+parts.map(function(p){return '<span class="crumb-tag">'+p+'</span>';}).join('')+'</div>';
+}
+
+function canNext(){
+  if(st.step===0)return !!st.nivel;
+  if(st.step===1)return !!st.area;
+  if(st.step===2)return st.objetivo.length>0;
+  if(st.step===3)return true;
+  if(st.step===4)return !!st.formatoId;
+  return false;
+}
+
+function buildPrompt(){
+  var nivel=nLabel(st.nivel);
+  var area=st.area;
+  var objs=st.objetivo.map(oLabel).join(', ');
+  var turmaDesc=st.turma.length?st.turma.map(tLabel).join(', '):'turma geral';
+  var spec=st.spec.trim();
+  var resultado=getResultadoBloco(st.formatoId,st.formatoLabel,area);
+  var refs=getRefBloco(st.nivel,area);
+
+  var p='🎭 PERSONA\n';
+  p+='Você é um especialista em design instrucional para a Educação Básica brasileira, com foco em '+area+' no nível '+nivel+', com domínio da Base Nacional Comum Curricular (BNCC).';
+  p+='\n\n⚡ AÇÃO\n';
+  p+=objs.charAt(0).toUpperCase()+objs.slice(1)+' para uma turma de '+nivel+', componente curricular: '+area+'. Identifique e indique as habilidades da BNCC mais adequadas para esta atividade, considerando o nível de ensino e o componente curricular selecionados.';
+  p+='\n\n📄 RESULTADO ESPERADO\n';
+  p+=resultado;
+  p+='\n\n🏫 CONTEXTO\n';
+  p+='Escola pública brasileira. Características da turma: '+turmaDesc+'.';
+  if(spec)p+='\nFonte ou obra indicada pelo professor: '+spec;
+  p+='\n\n💡 EXEMPLOS E REFERÊNCIAS\n';
+  p+=refs;
+  p+='\n\n---\nLEMBRETE: O output é ponto de partida. Revise com sua lente crítica — precisão, viés e relevância para o seu contexto real. A decisão pedagógica é sua.';
+  return p;
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function bindAreaChips(){
+  var chips=document.querySelectorAll('[data-area]');
+  chips.forEach(function(chip){
+    chip.addEventListener('click',function(){
+      st.area=chip.getAttribute('data-area');
+      render();
+    });
+  });
+}
+
+function bindFormatoChips(){
+  var chips=document.querySelectorAll('[data-fid]');
+  chips.forEach(function(chip){
+    chip.addEventListener('click',function(){
+      st.formatoId=chip.getAttribute('data-fid');
+      st.formatoLabel=chip.getAttribute('data-flabel');
+      chips.forEach(function(c){c.classList.remove('sel');});
+      chip.classList.add('sel');
+      var btn=document.getElementById('btn-next');
+      if(btn)btn.disabled=false;
+    });
+  });
+}
+
+function render(){
+  var app=document.getElementById('app');
+  var s=st.step;
+  var h=dots();
+  if(s>0)h+=crumbs();
+
+  if(s===5){
+    var prompt=buildPrompt();
+    h+='<div class="result-box">';
+    h+='<div class="result-top"><span>Prompt gerado</span><button class="btn-copy" id="bcopy" onclick="copyPrompt()">Copiar</button></div>';
+    h+='<div class="result-body">'+esc(prompt)+'</div>';
+    h+='</div>';
+    h+='<div class="aviso-fonte"><strong>Lembre-se:</strong> indique sempre uma obra ou fonte real ao usar este prompt. A IA não deve inventar conteúdo — ela deve trabalhar a partir do que já existe.</div>';
+    h+='<div class="lente"><strong>Lente crítica antes de usar:</strong> verifique se o output está <strong>preciso</strong>, <strong>sem viés</strong> e <strong>relevante</strong> para a sua turma real. A decisão pedagógica é sua.</div>';
+    h+='<div class="nav"><button class="btn-p" onclick="restart()">Novo prompt</button></div>';
+    app.innerHTML=h;
+    return;
+  }
+
+  h+='<div class="panel">';
+
+  if(s===0){
+    h+='<div class="panel-title">Etapa 1 de 5</div><div class="panel-q">Qual é o nível de ensino?</div><div class="chips">';
+    NIVEIS.forEach(function(n){
+      h+='<div class="chip'+(st.nivel===n.id?' sel':'')+'" onclick="pickNivel(\''+n.id+'\')">'+n.label+'</div>';
+    });
+    h+='</div>';
+  }
+
+  if(s===1){
+    h+='<div class="panel-title">Etapa 2 de 5</div><div class="panel-q">Qual área de conhecimento?</div><div class="chips">';
+    (AREAS[st.nivel]||[]).forEach(function(a){
+      h+='<div class="chip'+(st.area===a?' sel':'')+'" data-area="'+esc(a)+'">'+a+'</div>';
+    });
+    h+='</div>';
+  }
+
+  if(s===2){
+    h+='<div class="panel-title">Etapa 3 de 5</div><div class="panel-q">Qual é o objetivo pedagógico?</div>';
+    h+='<div class="hint">Pode escolher mais de um.</div><div class="chips">';
+    OBJETIVOS.forEach(function(o){
+      h+='<div class="chip'+(inArr(st.objetivo,o.id)?' sel':'')+'" onclick="toggleObj(\''+o.id+'\')">'+o.label+'</div>';
+    });
+    h+='</div>';
+  }
+
+  if(s===3){
+    h+='<div class="panel-title">Etapa 4 de 5</div><div class="panel-q">Como é a sua turma?</div>';
+    h+='<div class="hint">Selecione o que se aplica (opcional).</div><div class="chips">';
+    TURMA.forEach(function(t){
+      h+='<div class="chip'+(inArr(st.turma,t.id)?' sel':'')+'" onclick="toggleTurma(\''+t.id+'\')">'+t.label+'</div>';
+    });
+    h+='</div>';
+  }
+
+  if(s===4){
+    h+='<div class="panel-title">Etapa 5 de 5</div><div class="panel-q">Qual o formato da entrega?</div><div class="chips">';
+    FORMATOS.forEach(function(f){
+      h+='<div class="chip'+(st.formatoId===f.id?' sel':'')+'" data-fid="'+f.id+'" data-flabel="'+f.label+'">'+f.label+'</div>';
+    });
+    h+='</div>';
+    h+='<div class="spec-wrap">';
+    h+='<div class="spec-label">Fonte ou obra de referência (opcional)</div>';
+    h+='<div class="spec-hint">A IA nunca deve criar conteúdo fictício. Indique aqui a obra, autor, fonte ou situação real que servirá de base — ou deixe em branco para que a IA sugira referências reais.</div>';
+    h+='<textarea class="spec" id="spec-ta" placeholder="Ex: conto \'A Cartomante\' de Machado de Assis; dados do último Censo do IBGE; regras oficiais do futsal; cantiga \'Ciranda Cirandinha\'." oninput="saveSpec()"></textarea>';
+    h+='</div>';
+  }
+
+  h+='</div>';
+  h+='<div class="nav">';
+  if(s>0)h+='<button class="btn-p" onclick="back()">Voltar</button>';
+  h+='<button class="btn-p btn-next" id="btn-next" '+(canNext()?'':'disabled')+' onclick="next()">'+(s===4?'Gerar prompt':'Continuar')+'</button>';
+  if(s>0)h+='<span class="restart" onclick="restart()">Recomeçar</span>';
+  h+='</div>';
+
+  app.innerHTML=h;
+
+  if(s===1)bindAreaChips();
+  if(s===4){
+    bindFormatoChips();
+    var ta=document.getElementById('spec-ta');
+    if(ta)ta.value=st.spec;
+  }
+}
+
+function pickNivel(id){st.nivel=id;st.area=null;render();}
+function toggleObj(id){var idx=st.objetivo.indexOf(id);if(idx>=0)st.objetivo.splice(idx,1);else st.objetivo.push(id);render();}
+function toggleTurma(id){var idx=st.turma.indexOf(id);if(idx>=0)st.turma.splice(idx,1);else st.turma.push(id);render();}
+function saveSpec(){var ta=document.getElementById('spec-ta');if(ta)st.spec=ta.value;}
+
+function next(){
+  if(!canNext())return;
+  if(st.step===4){var ta=document.getElementById('spec-ta');if(ta)st.spec=ta.value;}
+  st.step++;render();
+}
+
+function back(){if(st.step>0){st.step--;render();}}
+
+function restart(){
+  st={nivel:null,area:null,objetivo:[],turma:[],formatoId:null,formatoLabel:null,spec:'',step:0};
+  render();
+}
+
+function copyPrompt(){
+  var txt=buildPrompt();
+  navigator.clipboard.writeText(txt).then(function(){
+    var b=document.getElementById('bcopy');
+    if(b){b.textContent='Copiado ✓';setTimeout(function(){b.textContent='Copiar';},2000);}
+  });
+}
+
+render();
+</script>
